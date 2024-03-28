@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Лаб 7</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            margin: 0;
+        }
+        #output {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+            border-bottom: 1px solid #ccc;
+        }
+        #feedback {
+            color: red;
+            height: 20px;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        #inputArea {
+            padding: 10px;
+            background: #f9f9f9;
+            box-shadow: 0 -2px 5px rgba(0,0,0,0.1);
+        }
+        textarea {
+            width: calc(100% - 22px);
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div id="output"></div>
+    <div id="feedback"></div>
+    <div id="inputArea">
+        <input type="text" id="login" placeholder="Логин"><br>
+        <input type="password" id="password" placeholder="Пароль"><br>
+        <textarea id="message" placeholder="Сообщение"></textarea><br>
+        <button onclick="sendMessage()">Отправить</button>
+    </div>
+
+    <script>
+        const socket = new WebSocket("ws://localhost:80/ws");
+
+        socket.onopen = function(event) {
+            console.log("Соединение установлено.");
+        };
+
+       socket.onmessage = function(event) {
+			try {
+				const data = JSON.parse(event.data);
+				if (Array.isArray(data)) {
+					data.forEach(addMessageToChat);
+				} else {
+					addMessageToChat(data);
+				}
+			} catch (e) {
+				console.error("Ошибка при обработке сообщения:", e);
+				showFeedback(event.data);
+			}
+		};
+
+		function addMessageToChat(message) {
+			const outputDiv = document.getElementById("output");
+			const formattedMessage = `<b>${message.Username}</b> (${new Date(message.Date).toLocaleString()}): ${message.Text}`;
+			outputDiv.innerHTML += `<div>${formattedMessage}</div>`;
+			outputDiv.scrollTop = outputDiv.scrollHeight; 
+		}
+
+        socket.onclose = function(event) {
+            console.log("Соединение закрыто:", event);
+        };
+
+        socket.onerror = function(error) {
+            console.log("Ошибка:", error);
+        };
+
+        function sendMessage() {
+            const login = document.getElementById("login").value.trim();
+            const password = document.getElementById("password").value;
+            const message = document.getElementById("message").value.trim();
+            if (!message) return;
+            const combinedMessage = `${login}:${password}:${message}`;
+            socket.send(combinedMessage);
+            console.log("Отправлено сообщение:", combinedMessage);
+            document.getElementById("message").value = ""; 
+        }
+
+        function showFeedback(message) {
+            const feedbackDiv = document.getElementById("feedback");
+            feedbackDiv.innerText = message;
+            setTimeout(() => {
+                feedbackDiv.innerText = "";
+            }, 10000);
+        }
+    </script>
+</body>
+</html>
