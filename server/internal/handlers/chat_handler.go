@@ -26,14 +26,14 @@ var upgrader = websocket.Upgrader{
 
 type ChatHandler struct {
 	chatUsecase ChatUsecase
-	clients     map[*websocket.Conn]bool
+	clients     map[*websocket.Conn]struct{}
 	mutex       sync.Mutex
 }
 
 func NewChatHandler(chatUsecase ChatUsecase) *ChatHandler {
 	return &ChatHandler{
 		chatUsecase: chatUsecase,
-		clients:     make(map[*websocket.Conn]bool),
+		clients:     make(map[*websocket.Conn]struct{}),
 	}
 }
 
@@ -46,7 +46,7 @@ func (h *ChatHandler) HandleConnections(w http.ResponseWriter, r *http.Request) 
 	defer conn.Close()
 
 	h.mutex.Lock()
-	h.clients[conn] = true
+	h.clients[conn] = struct{}{}
 	h.mutex.Unlock()
 
 	history, err := h.chatUsecase.GetChatHistory()
